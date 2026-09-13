@@ -200,14 +200,17 @@ In this workflow:
   2. The current codebase in `src/`
   3. The rigorous design system rules in `prompt.txt`
 
+Before the screenshots reach the subagent, the orchestrator must also verify `screenshot-capture-manifest.json` in the review directory. The manifest must be created by the current capture run, list every PNG being handed off, and show that each listed file is non-empty and modified at or after `captureStartedAt`. A missing, stale, partial, or mismatched manifest invalidates the round; do not reuse the previous round's screenshots.
+
 ### Subagent Lifecycle Execution
 1. Once Round N subagent delivers its report:
    - If defects are found (including chart number collisions):
      - `manage_subagents` -> `Action: 'kill'` with `ConversationIds: [id]`.
      - Remediate code in repo.
      - Run `npm run lint && npm run build`.
-     - Run `node capture-all-screenshots.mjs` to re-render fresh screenshots.
-     - Call `invoke_subagent` to launch Round N+1 subagent.
+      - Run `node capture-all-screenshots.mjs --captureId round-<N+1>` to re-render fresh screenshots.
+      - Validate the new `screenshot-capture-manifest.json` before handing off any files.
+      - Call `invoke_subagent` to launch Round N+1 subagent.
    - If verdict is `SIGN-OFF_APPROVED` (100/100):
      - Generate `README_UI_UX_SIGNOFF.md`.
      - Conclude with `<!-- GOAL_COMPLETE -->`.

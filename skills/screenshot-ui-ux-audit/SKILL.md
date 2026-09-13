@@ -13,7 +13,7 @@ This skill guides an orchestrator agent through an autonomous, ultra-high-rigor 
 2. **Progressive Multi-Fold Vertical Scrolling (Desktop & Mobile)**: Overcoming "above-the-fold blindness" by capturing sequential viewport folds (`Fold1_Top`, `Fold2_Mid`, `Fold3_Bottom`) for long dashboards, ledgers, and 1-column mobile stacked layouts.
 3. **Strict 1:1 PC/Mobile Viewport Parity**: Guaranteeing that every route, sub-route, chart view, and overlay captured on Desktop (1440×900) has an exact counterpart captured on Mobile (412×915).
 4. **Zero-Tolerance Chart Data Label Anti-Collision Audit**: Strict detection of number collisions on top of chart bars (e.g. `$388$388$388` merging or adjacent labels with < 8px clearance), enforcing P0 defect logging and score deduction.
-5. **Deterministic Screen Capturing**: Generating a project-tailored `capture-all-screenshots.mjs` script that purges old screenshots, enforces `scale: 'css'`, waits for animation & canvas settling, and validates non-zero file sizes.
+5. **Deterministic Screen Capturing**: Generating a project-tailored `capture-all-screenshots.mjs` script that purges old screenshots, enforces `scale: 'css'`, waits for animation & canvas settling, and writes a per-run manifest only after validating the complete fresh screenshot set.
 6. **Independent Brand-New Reviewer Subagent Per Iteration**: Spawning a completely clean subagent in each round with zero conversational memory or bias.
 
 ```
@@ -147,6 +147,9 @@ Screenshots must reflect the exact, current state of the application:
 2. **Fresh Browser Context**: Create a new incognito-equivalent browser context (`browser.newContext({ deviceScaleFactor: 1 })`) with clean storage and cache.
 3. **Scale: 'css'**: Always pass `scale: 'css'` to `page.screenshot()` to ensure 1:1 CSS pixel alignment on high-DPI displays.
 4. **Integrity Validation**: The capture script must verify that every expected screenshot exists and is > 0 bytes before exiting.
+5. **Per-Round Capture Identity**: Pass a unique `--captureId` for every audit round. The script must delete the prior `screenshot-capture-manifest.json` before capture and write a new manifest only after the run succeeds.
+6. **Freshness Gate Before Handoff**: The orchestrator MUST confirm the manifest exists, its `captureRunId` matches the current round, every listed file exists with a non-zero size, and every file modification time is at or after that run's start time. Do not invoke the reviewer if any check fails.
+7. **No Partial-Round Reuse**: If capture exits non-zero or the manifest is missing/inconsistent, treat the round as invalid, repair or rerun capture, and never give the reviewer PNGs from the previous round.
 
 ---
 
@@ -158,9 +161,10 @@ Screenshots must reflect the exact, current state of the application:
   2. Kill the subagent using `manage_subagents` with `Action: 'kill'`, `ConversationIds: [id]`.
   3. Apply code fixes in the repository.
   4. Run build and lint verification (`npm run lint && npm run build`, `0 warnings` enforced).
-  5. Run `node capture-all-screenshots.mjs` to freshly re-capture all screens.
-  6. Call `invoke_subagent` to spawn a **fresh, brand-new subagent** with no memory of prior iterations.
-  7. The fresh subagent inspects the newly rendered PNG files and current codebase with zero bias.
+   5. Run `node capture-all-screenshots.mjs --captureId <unique-round-id>` to freshly re-capture all screens. The command must exit successfully.
+   6. Validate `screenshot-capture-manifest.json` and confirm it describes this round's complete, non-empty, recently modified PNG set.
+   7. Call `invoke_subagent` to spawn a **fresh, brand-new subagent** with no memory of prior iterations, including the manifest path in its prompt.
+   8. The fresh subagent inspects only the manifest-validated PNG files and current codebase with zero bias.
 
 ---
 
@@ -211,9 +215,10 @@ See `scripts/capture-all-screenshots.mjs` for the reference implementation:
 ---
 
 ### Phase 3: Execute Capture & Generate Review Instructions
-1. Run the script: `node capture-all-screenshots.mjs http://localhost:3000`.
-2. Verify all output PNGs exist on disk and have non-zero size.
-3. Write `prompt.txt` in the review directory specifying all captured screenshots, the parity matrix, and the 7-dimension audit criteria (with bold emphasis on zero label collisions).
+1. Run the script with a new round identifier: `node capture-all-screenshots.mjs --baseUrl http://localhost:3000 --captureId round-<N>`.
+2. Require a successful exit and verify `screenshot-capture-manifest.json` exists in the review directory. The manifest is the freshness gate: it must list the complete PNG set produced by this run, with non-zero sizes and modification times at or after `captureStartedAt`.
+3. Write `prompt.txt` in the review directory specifying the manifest path, all manifest-listed screenshots, the parity matrix, and the 7-dimension audit criteria (with bold emphasis on zero label collisions).
+4. Only after those checks pass, give the manifest-listed screenshots to the independent reviewer.
 
 ---
 
@@ -238,7 +243,8 @@ Call `invoke_subagent` to launch a new, unanchored reviewer:
    - Immediately `kill` the subagent conversation (`manage_subagents`).
    - Remediate code in repo according to the punch-list.
    - Run quality checks: `npm run lint && npm run build` (0 warnings enforced).
-   - Run `node capture-all-screenshots.mjs` to freshly re-render all screenshots.
+   - Run `node capture-all-screenshots.mjs --captureId round-<N+1>` to freshly re-render all screenshots; a successful manifest is required.
+   - Validate the new manifest and hand off only its files.
    - Spawn a brand-new subagent for Round N+1.
 2. **If verdict is approved (`SIGN-OFF_APPROVED`)**:
    - Verify overall grade is `100 / 100`.

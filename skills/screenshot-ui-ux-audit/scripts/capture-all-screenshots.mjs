@@ -12,10 +12,10 @@
  *   (_Fold1_Top, _Fold2_Middle, _Fold3_Bottom) so below-the-fold content is never missed
  * - 1:1 Cross-Viewport Parity: Guarantees every route, sub-route (/fee/*), and modal is captured on both PC and Mobile
  * - Canvas & Animation Settling: Enforces network idle + settling delays after route transitions and dialog openings
- * - Integrity Verification: Verifies all captured PNGs exist and have non-zero file sizes
+ * - Integrity Verification: Verifies the complete fresh PNG set and writes a review manifest
  * 
  * Usage:
- *   node capture-all-screenshots.mjs [--baseUrl http://localhost:3000] [--outDir C:/path/to/Review_Signoff]
+ *   node capture-all-screenshots.mjs [--baseUrl http://localhost:3000] [--outDir C:/path/to/Review_Signoff] [--captureId round-2]
  */
 
 import { chromium } from 'playwright';
@@ -30,12 +30,14 @@ const parseArgs = () => {
     outDirs: [
       path.resolve(process.env.USERPROFILE || '', 'Desktop/Google_MD3_UI_UX_Review_Signoff'),
     ],
+    captureId: null,
   };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--baseUrl' && args[i + 1]) config.baseUrl = args[++i];
     if (args[i] === '--outDir' && args[i + 1]) config.outDirs = [args[++i]];
     if (args[i] === '--extraOutDir' && args[i + 1]) config.outDirs.push(args[++i]);
+    if (args[i] === '--captureId' && args[i + 1]) config.captureId = args[++i];
     // Positional argument support: node script.js http://localhost:3000
     if (!args[i].startsWith('--') && i === 0) config.baseUrl = args[i];
   }
@@ -43,26 +45,33 @@ const parseArgs = () => {
 };
 
 const config = parseArgs();
+const captureStartedAt = Date.now();
+const captureRunId = config.captureId || `capture-${captureStartedAt}-${process.pid}`;
+const captureManifestName = 'screenshot-capture-manifest.json';
+const capturedFiles = new Set();
 
 // ─── Step 1: Force Freshness by Purging Stale Screenshots ──────────────────────
 console.log(`\n=== 1. Preparing Output Directories & Purging Stale Screenshots ===`);
 config.outDirs.forEach((dir) => {
+  fs.mkdirSync(dir, { recursive: true });
+  const manifestPath = path.join(dir, captureManifestName);
+  if (fs.existsSync(manifestPath)) fs.unlinkSync(manifestPath);
+
   if (fs.existsSync(dir)) {
-    const existing = fs.readdirSync(dir).filter(f => f.endsWith('.png'));
+    const existing = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.png'));
     if (existing.length > 0) {
       console.log(`Purging ${existing.length} stale PNGs in: ${dir}`);
       for (const file of existing) {
         fs.unlinkSync(path.join(dir, file));
       }
     }
-  } else {
-    fs.mkdirSync(dir, { recursive: true });
   }
 });
 
 // ─── Capture Helpers ──────────────────────────────────────────────────────────
 const saveScreenshot = async (page, filename) => {
   const buf = await page.screenshot({ scale: 'css' });
+  capturedFiles.add(filename);
   for (const dir of config.outDirs) {
     const fullPath = path.join(dir, filename);
     let written = false;
@@ -78,6 +87,22 @@ const saveScreenshot = async (page, filename) => {
     if (!written) fs.writeFileSync(fullPath, buf);
     console.log(`  [CAPTURED FRESH] ${filename} (${(buf.length / 1024).toFixed(1)} KB)`);
   }
+};
+
+const writeCaptureManifest = (dir, files) => {
+  const manifestPath = path.join(dir, captureManifestName);
+  const temporaryPath = `${manifestPath}.tmp-${process.pid}`;
+  const manifest = {
+    schemaVersion: 1,
+    captureRunId,
+    baseUrl: config.baseUrl,
+    captureStartedAt: new Date(captureStartedAt).toISOString(),
+    captureCompletedAt: new Date().toISOString(),
+    screenshotCount: files.length,
+    files,
+  };
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  fs.renameSync(temporaryPath, manifestPath);
 };
 
 const waitAndSettle = async (page, delayMs = 600) => {
@@ -478,20 +503,41 @@ const captureOverlay = async (page, triggerLocator, overlaySelector, filename) =
     // PART C: INTEGRITY VERIFICATION
     // ═══════════════════════════════════════════════════════════════════════════
     console.log(`\n=== 3. Validating Captured Screenshot Integrity ===`);
+    const expectedFiles = [...capturedFiles].sort();
+    if (expectedFiles.length === 0) {
+      throw new Error('No screenshots were captured; refusing to create a review manifest.');
+    }
+
+    const freshnessThreshold = captureStartedAt - 1000;
     let totalVerified = 0;
     for (const dir of config.outDirs) {
-      const files = fs.readdirSync(dir).filter(f => f.endsWith('.png'));
-      for (const f of files) {
-        const stats = fs.statSync(path.join(dir, f));
+      const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.png')).sort();
+      if (files.length !== expectedFiles.length || files.some((file, index) => file !== expectedFiles[index])) {
+        throw new Error(`Screenshot set in ${dir} does not match this capture run.`);
+      }
+
+      const manifestFiles = [];
+      for (const f of expectedFiles) {
+        const screenshotPath = path.join(dir, f);
+        const stats = fs.statSync(screenshotPath);
         if (stats.size === 0) {
           throw new Error(`Screenshot ${f} in ${dir} is 0 bytes!`);
         }
+        if (stats.mtimeMs < freshnessThreshold) {
+          throw new Error(`Screenshot ${f} in ${dir} predates this capture run.`);
+        }
+        manifestFiles.push({
+          filename: f,
+          sizeBytes: stats.size,
+          modifiedAt: new Date(stats.mtimeMs).toISOString(),
+        });
       }
-      totalVerified += files.length;
-      console.log(`Verified ${files.length} fresh screenshots in ${dir}`);
+      writeCaptureManifest(dir, manifestFiles);
+      totalVerified += expectedFiles.length;
+      console.log(`Verified ${expectedFiles.length} fresh screenshots in ${dir}`);
     }
 
-    console.log(`\n[SUCCESS] Deterministic capture finished with ${totalVerified} valid screenshots.`);
+    console.log(`\n[SUCCESS] Capture ${captureRunId} finished with ${totalVerified} valid screenshots and a review manifest.`);
   } catch (err) {
     console.error(`\n[ERROR] Capture script failed:`, err);
     process.exitCode = 1;

@@ -13,8 +13,12 @@ This review operates within an autonomous iterative loop. If ANY visual defect, 
   - **PC Desktop Viewport**: `1440 × 900` (High-DPI CSS Scaling)
   - **Mobile Responsive Viewports**: `412 × 915` (Flagship Android / Pixel / Galaxy) and `390 × 844` (Modern Mobile Portrait)
 - **Screenshot Directory**: `{{REVIEW_DIR}}`
+- **Screenshot Capture Manifest**: `{{REVIEW_DIR}}/screenshot-capture-manifest.json`
+- **Expected Capture Run ID**: `{{CAPTURE_RUN_ID}}`
 - **Application Codebase**: `{{CODEBASE_DIR}}`
 - **Dev Server**: Live on `{{BASE_URL}}`
+
+Before reviewing any PNG, open and validate the screenshot capture manifest. Its `captureRunId` must equal `{{CAPTURE_RUN_ID}}`; it must list the complete screenshot set and show non-zero file sizes with modification times at or after `captureStartedAt`. If the manifest is missing, stale, partial, mismatched, or has the wrong run ID, stop the visual review and return `### VERDICT: ITERATE_REQUIRED`; never review screenshots from a previous round.
 
 ---
 
