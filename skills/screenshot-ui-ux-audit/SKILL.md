@@ -2,19 +2,21 @@
 name: screenshot-ui-ux-audit
 description: >-
   Autonomous screenshot-driven UI/UX design system audit loop using independent, brand-new sub-agents per iteration.
-  Forces exhaustive route & sub-route exploration, multi-fold progressive scrolling (for long pages & mobile views),
+  Covers both Modern Web and Desktop GUI applications (PyQt6/PySide6, Electron, native apps).
+  Forces exhaustive route & sub-route exploration, multi-fold progressive scrolling (for long pages, scroll areas & mobile views),
   strict 1:1 PC/Mobile viewport parity, deterministic screen capturing, and iterates until a 100/100 sign-off is achieved.
 ---
 
 # Screenshot-Based Independent Sub-Agent UI/UX Audit Workflow
 
-This skill guides an orchestrator agent through an autonomous, ultra-high-rigor UI/UX design system audit loop. It eliminates confirmation bias and visual blind spots by pairing:
-1. **Mandatory Upfront Code Path & Sub-Route Exploration**: Complete discovery of all routes, sub-routes (e.g. `/fee/*` chart variants), nested tabs, modals, dialogs, drawers, and conditional states before capturing.
-2. **Progressive Multi-Fold Vertical Scrolling (Desktop & Mobile)**: Overcoming "above-the-fold blindness" by capturing sequential viewport folds (`Fold1_Top`, `Fold2_Mid`, `Fold3_Bottom`) for long dashboards, ledgers, and 1-column mobile stacked layouts.
-3. **Strict 1:1 PC/Mobile Viewport Parity**: Guaranteeing that every route, sub-route, chart view, and overlay captured on Desktop (1440×900) has an exact counterpart captured on Mobile (412×915).
-4. **Zero-Tolerance Chart Data Label Anti-Collision Audit**: Strict detection of number collisions on top of chart bars (e.g. `$388$388$388` merging or adjacent labels with < 8px clearance), enforcing P0 defect logging and score deduction.
-5. **Deterministic Screen Capturing**: Generating a project-tailored `capture-all-screenshots.mjs` script that purges old screenshots, enforces `scale: 'css'`, waits for animation & canvas settling, and writes a per-run manifest only after validating the complete fresh screenshot set.
-6. **Independent Brand-New Reviewer Subagent Per Iteration**: Spawning a completely clean subagent in each round with zero conversational memory or bias.
+This skill guides an orchestrator agent through an autonomous, ultra-high-rigor UI/UX design system audit loop for **both Modern Web Applications and Desktop GUI Applications** (PyQt6, PySide6, Electron, Web). It eliminates confirmation bias, rubber-stamping sycophancy, and visual blind spots by pairing:
+1. **Mandatory Upfront Code Path & View Exploration**: Complete discovery of all routes, sub-routes (e.g. `/fee/*` chart variants), tabs, scroll panels, modals, dialogs, drawers, and conditional states before capturing.
+2. **Progressive Multi-Fold Vertical Scrolling (Desktop & Mobile)**: Overcoming "above-the-fold blindness" in scrollable web pages and desktop GUI `QScrollArea` panels by capturing sequential viewport folds (`Fold1_Top`, `Fold2_Mid`, `Fold3_Bottom`).
+3. **Strict 1:1 PC/Mobile Viewport Parity**: Guaranteeing that every view, sub-route, dialog, and control captured on Desktop (1440×900) has an exact counterpart captured on Compact/Mobile (760×600 / 412×915).
+4. **Mandatory Negative-Proof Anti-Rubberstamping Verification (Top 10 Visual Disqualifiers)**: Banning superficial sycophantic sign-offs by requiring the reviewer subagent to explicitly certify PASS/FAIL on 10 hard disqualifiers (e.g. thick black collision lines, widget height overflow, 600px stretched spinboxes, truncated comboboxes, occluded action bars, overlapping chart labels). Any failure automatically caps score at $\le 70/100$ and mandates `ITERATE_REQUIRED`.
+5. **Table Cell Widget Clearance & Input Sizing Contracts**: Enforcing strict section height and column width rules for embedded widgets to prevent row border collisions and text clipping.
+6. **Deterministic Screen Capturing**: Generating a project-tailored capture script that purges old screenshots, enforces scaling, waits for settling, and writes a per-run manifest only after validating the complete fresh screenshot set.
+7. **Independent Brand-New Reviewer Subagent Per Iteration**: Spawning a completely clean subagent in each round with zero conversational memory or bias.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -168,6 +170,67 @@ Screenshots must reflect the exact, current state of the application:
 
 ---
 
+### 8. Table Cell Widget Clearance & Sizing Contract (Desktop GUI & Web Tables)
+**Embedded widgets must NEVER exceed row section height or cause horizontal clipping.**
+In desktop frameworks (PyQt6/PySide6, Tkinter, AppKit) and custom data grids:
+1. **Vertical Clearance Formula**:
+   Table row default section size ($H_{\text{row}}$) must strictly accommodate the inner widget height plus its styling padding and borders:
+   $$H_{\text{row}} \ge H_{\text{widget}} + 2 \times \text{padding}_{\text{vertical}} + 2 \times \text{border}$$
+   - *Failure Mode*: If an embedded widget (e.g. `QComboBox`, `QLineEdit`, `QSpinBox`) has `min-height: 20px; padding: 7px 12px; border: 1px;` (total 36px), putting it in a default 25px row forces an 11px vertical overflow. The widget draws over row boundaries, resulting in **thick solid black horizontal lines running through text** and unpainted gaps between columns.
+   - *Enforcement*: Always enforce `setDefaultSectionSize(44)` to `56` dp whenever interactive cell widgets are present.
+2. **Horizontal Clearance & Combobox Arrow Protection**:
+   Columns hosting comboboxes with icons must NOT use naive `ResizeToContents` calculated from short headers (e.g. "Provider" / "提供商").
+   - Set interactive column width $\ge 180\text{dp}$–$210\text{dp}$ to ensure provider names (e.g. "Google Gemini", "GitHub Copilot", "Anthropic Claude") are never truncated to "Google Gen..." or occluded by the dropdown arrow.
+
+---
+
+### 9. Input Control Width Sanity (Zero 600px Stretched Spinboxes)
+**Form inputs must enforce ergonomic maximum widths tailored to their data type.**
+1. **The Full-Width Stretch Anti-Pattern**:
+   Form layouts (`QFormLayout`, CSS flex/grid) stretch children horizontally by default. Numeric spinboxes (e.g. 1–100 cycles, 0.40 temperature, port numbers, currency multipliers) that stretch 600px–1000px across the viewport look absurd and violate basic ergonomics.
+2. **Prescribed Maximum Widths**:
+   - Short numeric spinboxes / counters: `setMaximumWidth(80 - 120px)`.
+   - Small dropdowns / select menus: `setMaximumWidth(200 - 240px)`.
+   - Related paired inputs (e.g. Max cycles + Wait time): Group horizontally in a single compact row (`QHBoxLayout` / `flex-row`) rather than stacking full-width across multiple rows.
+
+---
+
+### 10. Persistent Action Bar vs Floating Dock Architecture
+**Action bars must either be cleanly docked edge-to-edge or distinctly floating with proper clearance.**
+1. **Edge-to-Edge Docked Architecture**:
+   If an action bar is pinned below a scroll area:
+   - Must enforce `border-radius: 0; border-top: 1px solid <outline_variant>; margin: 0;`.
+   - Layout spacing between scroll area and action bar must be `0px` so the scroll area vertical scrollbar meets the action bar seamlessly.
+2. **Floating Elevated Dock Architecture**:
+   If designed as a floating pill:
+   - Must enforce generous outer margins (`margin: 12px 16px; border-radius: 20px;`) and an elevated surface container.
+3. **Forbidden Half-Cut Collision**:
+   Never use a floating rounded bar (`border-radius: 16px`) with 0 margins pressed against screen borders—it creates an optical illusion of a sliced, broken window container.
+
+---
+
+### 11. Mandatory Anti-Rubberstamping Verification (The Top 10 Visual Disqualifiers)
+**Sycophancy and confirmation bias are the #1 failure mode of LLM design reviewers.**
+In prior audits, subagents looked at overall theme colors, noticed rounded buttons, and falsely awarded "100/100" while completely ignoring thick black rendering lines cutting through text, sliced containers, and 600px spinboxes.
+1. **Mandatory Negative Proof Checklist**:
+   Every review report MUST include Section 2 ("Negative-Proof Disqualifiers Verification") where the reviewer explicitly inspects and certifies PASS/FAIL for each of the **Top 10 Visual Disqualifiers**:
+   1. **Thick Black Rendering / Collision Lines**: Black horizontal or vertical artifact lines running across table rows, through text, or between adjacent cells caused by widget bounding-box clipping or CSS overflow.
+   2. **Cell Widget Height Collisions**: Table row height less than inner widget height + padding (`rowHeight < widgetHeight + 8dp`), causing borders to slice through text.
+   3. **Absurdly Stretched Inputs**: Numeric spinboxes or short strings stretched across full-width layouts (> 200px wide without `maximumWidth`).
+   4. **Truncated Combobox Labels**: Text clipped (e.g. "Google Gemi...") or covered by the dropdown arrow due to insufficient column width.
+   5. **Abrupt Container / Card Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation.
+   6. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
+   7. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
+   8. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
+   9. **Data Label / Number Collisions**: Overlapping numbers on chart bars or counters touching with < 8px clearance.
+   10. **Concentric Radii Violations**: Inner elements having larger corner radius than outer parent cards ($R_{\text{inner}} > R_{\text{outer}} - \text{padding}$).
+2. **Automatic Score Penalty**:
+   If **ANY** of these 10 disqualifiers fails in ANY screenshot:
+   - Overall score is **STRICTLY CAPPED AT $\le 70 / 100$**.
+   - Reviewer MUST issue **`### VERDICT: ITERATE_REQUIRED`**. Zero exceptions.
+
+---
+
 ## Step-by-Step Execution Guide
 
 ### Phase 1: Code Path Exploration & Parity Matrix
@@ -260,10 +323,10 @@ Call `invoke_subagent` to launch a new, unanchored reviewer:
 | **1** | **Tonal Surface Stack** | Visual depth via luminance transitions (`surfaceContainerLowest` to `surfaceContainerHighest`). Zero harsh 1px high-contrast divider traps. Consistent theme seed colors across all views. |
 | **2** | **Concentric Shape & Radii Math** | Concentric formula $R_{\text{inner}} = \max(0, R_{\text{outer}} - \text{padding})$ strictly maintained. Bento cards (20px) nest 8–12px elements. Modals (28px) nest 16px cards. Pills enforce 9999px. |
 | **3** | **Sheets & Modals Hierarchy** | Desktop (>= 900px) uses contextual right-docked side sheets (28px left corners) keeping underlying view visible. Mobile (< 600px) uses full-screen or bottom sheets with flush geometry. Center dialogs reserved for compact confirmations. |
-| **4** | **Data Density & Tabular Numerals** | Strict table row heights (56dp). All monetary numbers, counters, and timestamps enforce `font-variant-numeric: tabular-nums` and `font-feature-settings: 'tnum'`. Right-aligned amounts. Compact 28–32dp Assist Chips. |
-| **5** | **Chart Readability, Anti-Collision & Sub-Routes** | Strictly horizontal labels (`rotate: 0`). **Zero overlapping numbers or glyph collisions on top of bars (minimum 8px lateral clearance between adjacent labels; numbers like `$388$388` must never touch or merge)**. WCAG AAA text contrast (> 7:1) on colored bars. Micro-segment collision suppression. Elevated frosted tooltips. All sub-routes (`/fee/*` water, electric, gas, total) fully rendered and collision-free across both Desktop and Mobile. |
+| **4** | **Data Density, Tabular Numerals & Cell Clearance** | Strict table row heights (44–56dp); embedded widget clearance ($H_{\text{row}} \ge H_{\text{widget}} + 8\text{dp}$); zero black horizontal collision lines; input control width sanity (no 600px spinboxes; numeric counters constrained to 80–120dp); all monetary numbers and counters enforce `font-variant-numeric: tabular-nums` or monospace; right-aligned amounts; compact 28–32dp Assist Chips. |
+| **5** | **Chart Readability, Anti-Collision & Sub-Routes** | Strictly horizontal labels (`rotate: 0`). **Zero overlapping numbers or glyph collisions on top of bars (minimum 8px lateral clearance between adjacent labels; numbers like `$388$388` must never touch or merge)**. WCAG AAA text contrast (> 7:1) on colored bars. Micro-segment collision suppression. Elevated frosted tooltips. All sub-routes fully rendered and collision-free across both Desktop and Mobile. |
 | **6** | **Temporal & Calendar Alignment** | Attendance and weekly matrices strictly anchor to real calendar weekdays (Sunday start). Current day highlighted. Complete punch status legends (`● 缺卡`). Progressive disclosure hides inactive states. |
-| **7** | **Mobile Responsiveness, Multi-Fold Stacking & Parity** | Fluid 1-column layout without horizontal overflow (`overflow-x: clip`). Safe-area insets (`env(safe-area-inset-bottom)`) respected. Touch targets meet minimum 48×48dp. Multi-fold vertical scroll stability: sticky headers do not obscure content, bottom nav stays docked, and below-the-fold cards maintain spacing. Strict 1:1 parity with desktop suite. |
+| **7** | **Mobile Responsiveness, Multi-Fold Stacking & Parity** | Fluid responsive layout without horizontal overflow. Multi-fold vertical scroll continuity across all folds (`_Fold1_Top`, `_Fold2_Mid`, `_Fold3_Bottom`); sticky headers and action bars do not obscure data or slice mid-input; docked bottom bars sit flush or float with proper margins; touch targets meet minimum 44–48dp; strict 1:1 parity with desktop suite. |
 
 ---
 

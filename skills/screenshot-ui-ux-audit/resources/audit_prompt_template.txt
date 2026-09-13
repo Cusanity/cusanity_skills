@@ -53,26 +53,22 @@ Notice: Long pages are captured across multiple sequential vertical folds (`_Fol
 - **Mobile (< 600px)**: Sheets must seamlessly adapt to standard bottom sheets (`anchor="bottom"`) or full-screen overlays with flush, symmetrical top corners (`borderTopLeftRadius: 0`). Reject asymmetrical one-sided rounded drawers on full-width mobile viewports.
 - Center modals (`Dialog`) are strictly reserved for compact alerts and confirmations.
 
-### 4. Data Density, Ergonomics & Tabular Numerals
-- Table rows must adhere strictly to ergonomic heights (56dp standard).
-- All monetary amounts, balances, time stamps, and counters must enforce `font-variant-numeric: tabular-nums` and `font-feature-settings: 'tnum'` to eliminate layout jitter.
+### 4. Data Density, Ergonomics, Cell Clearance & Tabular Numerals
+- Table rows must adhere strictly to ergonomic heights (44–56dp standard).
+- **Table Cell Widget Clearance**: Embedded cell widgets (comboboxes, text edits, spinboxes) must strictly fit inside the row height ($H_{\text{row}} \ge H_{\text{widget}} + 8\text{dp}$). Zero thick black horizontal lines or border clipping across text.
+- **Input Width Constraints**: Numeric spinboxes, counters, and short inputs must be constrained to compact widths (80–120dp). Single-digit values or short codes stretching 600px–1000px across the screen are strictly prohibited.
+- All monetary amounts, balances, time stamps, and counters must enforce `font-variant-numeric: tabular-nums` or monospace font settings to eliminate layout jitter.
 - Monetary values must be right-aligned with directional indicators.
 
 ### 5. Data Visualization, Anti-Collision & Typographic Clearance
 - **ZERO TOLERANCE FOR OVERLAPPING DATA LABELS (MANDATORY CHART COLLISION AUDIT)**:
-  - You MUST zoom in and closely scrutinize the numeric data labels displayed above/inside every bar across all chart screenshots (specifically `/fee/*` routes: `/fee/waterChart/`, `/fee/electricityChart/`, `/fee/gasChart/`, `/fee/totalChart/` on BOTH PC and Mobile viewports).
-  - **Collision Violation Threshold**: If two or more adjacent numbers touch, overlap, merge characters (e.g. `$388$388$388` merging into a single continuous unreadable text blob, or adjacent labels like `$216$220` where the `6` touches the `$`), or have less than **8px horizontal clearance** between their text bounding boxes, you MUST flag this as a **CRITICAL SEVERITY DEFECT**.
+  - You MUST zoom in and closely scrutinize numeric data labels displayed above/inside every bar across all chart screenshots.
+  - **Collision Violation Threshold**: If two or more adjacent numbers touch, overlap, merge characters (e.g. `$388$388$388` merging into a continuous unreadable text blob, or adjacent labels like `$216$220` where characters touch), or have less than **8px horizontal clearance** between their text bounding boxes, you MUST flag this as a **CRITICAL SEVERITY DEFECT**.
   - **Scoring Penalty**: If ANY overlapping or touching data labels exist in ANY chart screenshot, Dimension 5 CANNOT receive more than **5 / 10**, and your final verdict MUST be **`### VERDICT: ITERATE_REQUIRED`**.
-  - **Inspection Method**: Reviewers must scan consecutive bars (especially consecutive months with high or similar values like summer electricity or winter gas). Do not glance over charts; verify the negative space between every pair of adjacent labels.
-  - **Proposed Code Remediations**:
-    1. *Mobile / Dense Viewport Suppression*: On mobile (< 600px) or whenever `barWidth < labelWidth + 8px`, suppress static top labels and rely entirely on interactive elevated tooltips on touch/hover.
-    2. *Selective / Peak Labeling*: Render labels only for the maximum and minimum values in the series, or hide labels dynamically when collision is detected.
-    3. *Currency Symbol Optimization*: Remove duplicate "$" symbols from bar tops if the Y-axis or card header already indicates currency ($), reducing label character width by 30%.
 - Strictly horizontal labels (`rotate: 0`). Zero diagonal or rotated labels.
 - WCAG AAA contrast for all text inside or above colored bars (> 7:1 contrast ratio).
 - Micro-segment collision suppression: segments under threshold suppress inline text.
-- Tooltips must render as elevated surface containers with frosted glass blur (`backdrop-filter: blur(...)`).
-- 100% sub-route coverage across both PC and Mobile.
+- Tooltips must render as elevated surface containers with frosted glass blur.
 
 ### 6. Temporal & Calendar Alignment
 - Calendars and attendance matrices must strictly anchor to real physical calendar weekdays (Sunday start standard).
@@ -80,12 +76,32 @@ Notice: Long pages are captured across multiple sequential vertical folds (`_Fol
 - Progressive disclosure hides empty or irrelevant states.
 
 ### 7. Mobile Responsiveness, Multi-Fold Stacking & Touch Ergonomics
-- Fluid 1-column layout stacking without horizontal overflow (`overflow-x: clip`).
-- Multi-fold vertical scroll continuity: sticky headers do not obscure data when scrolled down, and bottom navigation bar remains accessible without content clipping.
+- Fluid layout stacking without horizontal overflow (`overflow-x: clip`).
+- Multi-fold vertical scroll continuity across all folds (`_Fold1_Top`, `_Fold2_Mid`, `_Fold3_Bottom`): sticky headers and action bars do not obscure data when scrolled, and docked action bars sit flush or float with proper margins.
 - Safe-area insets (`env(safe-area-inset-bottom)`) respected across main shell and bottom navigation.
-- Touch targets must meet WCAG AAA standards (minimum 48×48dp, or 36–40dp for compact chips).
-- Bottom navigation active indicator must use an authentic full-capsule pill.
+- Touch targets must meet WCAG AAA standards (minimum 44–48dp, or 32–36dp for compact chips).
 - **1:1 Parity**: Every feature, modal, and sub-route present on desktop must have a high-fidelity mobile counterpart.
+
+---
+
+## MANDATORY ANTI-RUBBERSTAMPING CHECK: TOP 10 VISUAL DISQUALIFIERS
+
+> [!CAUTION]
+> **DO NOT RUBBER-STAMP OR DEFAULT TO HIGH SCORES.**
+> In prior iterations, subagents committed critical sycophancy errors by skimming surfaces and ignoring thick black horizontal collision lines, overlapping table widgets, sliced cards, and 600px-wide stretched spinboxes.
+> You MUST inspect every image at 100% zoom and explicitly certify the absence of each of the following **Top 10 Visual Disqualifiers** in Section 2 of your report.
+> If **ANY** of these 10 flaws exists in ANY screenshot, your overall score is **STRICTLY CAPPED AT <= 70 / 100** and your verdict MUST be **`### VERDICT: ITERATE_REQUIRED`**.
+
+1. **Thick Black Rendering / Collision Lines**: Black horizontal or vertical artifact lines running across table rows, through text, or between adjacent cells caused by widget bounding-box clipping or style sheet overflow.
+2. **Cell Widget Height Collisions**: Table row default section height less than the embedded widget height + vertical padding (`rowHeight < widgetHeight + 8dp`), causing cell borders to overlap combo/input text.
+3. **Absurdly Stretched Inputs**: Single-digit numbers, numeric spinboxes, or short strings stretched across full-width layouts (> 200px wide without a reasonable `maximumWidth`).
+4. **Truncated Combobox Labels**: Provider or model combobox text clipped (e.g. "Google Gemi..." instead of "Google Gemini") or covered by the dropdown arrow icon due to insufficient column width.
+5. **Abrupt Container / Card Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation or clearance from the action bar.
+6. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
+7. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
+8. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
+9. **Label / Number Collisions**: Adjacent numbers, counters, or badges touching or having < 8px clearance.
+10. **Concentric Radii Violations**: Inner elements having larger corner radius than outer parent cards ($R_{\text{inner}} > R_{\text{outer}} - \text{padding}$).
 
 ---
 
@@ -100,22 +116,37 @@ You must output your evaluation strictly using the following markdown sections:
 | Dimension | Rating (out of 10) | Compliance Assessment |
 |:---|:---:|:---|
 | 1. Tonal Surface Stack & Color Fidelity | X / 10 | ... |
-| 2. Concentric Shape & Nested Radii Math | X / 10 | ... |
+| 2. Concentent Shape & Nested Radii Math | X / 10 | ... |
 | 3. Sheets & Modals Hierarchy | X / 10 | ... |
-| 4. Data Density & Tabular Numerals | X / 10 | ... |
+| 4. Data Density, Cell Clearance & Numerals | X / 10 | ... |
 | 5. Chart Readability, Anti-Collision & Sub-Routes | X / 10 | ... |
 | 6. Temporal & Calendar Alignment | X / 10 | ... |
 | 7. Mobile Responsiveness, Multi-Fold Stacking & Parity | X / 10 | ... |
 | **Overall Platform Grade** | **XX / 100** | ... |
 
-## 2. Defect & Inconsistency Punch-List
+## 2. Negative-Proof Disqualifiers Verification
+(Reviewer MUST explicitly certify every item as PASS or FAIL)
+| # | Disqualifier Check | Status (PASS / FAIL) | Photographic Evidence / Observation |
+|---|:---|:---:|:---|
+| 1 | Zero Thick Black Rendering / Collision Lines | PASS / FAIL | ... |
+| 2 | Table Row Clearance >= Embedded Widget Height | PASS / FAIL | ... |
+| 3 | Input Controls Constrained (No Stretched Spinboxes) | PASS / FAIL | ... |
+| 4 | Combobox Text Unclipped by Dropdown Arrows | PASS / FAIL | ... |
+| 5 | Clean Viewport Fold Continuity (No Mid-Input Slicing) | PASS / FAIL | ... |
+| 6 | Docked Action Bar Flush & Non-Occluding | PASS / FAIL | ... |
+| 7 | Zero Unpainted Table Cell Gaps | PASS / FAIL | ... |
+| 8 | Complete Multi-Fold Inspection (Folds 1, 2, 3) | PASS / FAIL | ... |
+| 9 | Zero Overlapping Numbers or Glyph Collisions | PASS / FAIL | ... |
+| 10 | Concentric Radii Math Respected | PASS / FAIL | ... |
+
+## 3. Defect & Inconsistency Punch-List
 (If any defects exist, populate the table below. If zero defects, state "Zero defects identified".)
 | ID | Viewport | Screenshot # / Fold | File Path & Lines | Visual Defect | Design Violation | Severity | Proposed Code Remediation |
 
-## 3. Detailed Technical Analysis
+## 4. Detailed Technical Analysis
 (Breakdown across key pages, sub-routes, chart label spacing, and below-the-fold views)
 
-## 4. Automated Verdict
+## 5. Automated Verdict
 (MUST be exactly one of the following two lines)
 ### VERDICT: ITERATE_REQUIRED
 or
@@ -123,4 +154,4 @@ or
 ```
 
 > [!IMPORTANT]
-> If you observe ANY numbers on top of chart bars colliding or overlapping (such as in `/fee/*` where adjacent month numbers touch or merge into `$388$388$388`), you MUST record it in Section 2, assign Dimension 5 a score <= 5/10, and conclude with `### VERDICT: ITERATE_REQUIRED`. Never issue `SIGN-OFF_APPROVED` when numeric collisions exist in screenshots.
+> If ANY of the Top 10 Visual Disqualifiers is identified, you MUST record it in Section 3, cap Overall Grade at <= 70 / 100, and conclude with `### VERDICT: ITERATE_REQUIRED`. Never issue `SIGN-OFF_APPROVED` when disqualifiers exist in screenshots.
