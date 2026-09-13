@@ -1,0 +1,77 @@
+# {{APPLICATION_NAME}} - Independent UI/UX Audit
+
+Act as an independent staff-level UI/UX reviewer. Apply the complete contract in the supplied `screenshot-ui-ux-audit/SKILL.md`; do not substitute personal style preferences for its gates.
+
+## Inputs
+
+- Codebase: `{{CODEBASE_DIR}}`
+- Base URL or launch target: `{{BASE_URL}}`
+- Capture plan / parity matrix: `{{CAPTURE_PLAN}}`
+- Screenshot directory: `{{REVIEW_DIR}}`
+- Manifest: `{{REVIEW_DIR}}/screenshot-capture-manifest.json`
+- Expected capture ID: `{{CAPTURE_RUN_ID}}`
+- Desktop artifacts: `{{DESKTOP_SCREENSHOT_TABLE}}`
+- Compact/mobile artifacts: `{{MOBILE_SCREENSHOT_TABLE}}`
+
+## Preflight
+
+Before reviewing pixels:
+1. Review all current application source code and confirm the manifest's source roots, complete file list, and SHA-256 hashes still match it.
+2. Confirm every source-derived coverage inventory ID maps to captured evidence, including the hardcoded `440x956` Mobile viewport and all applicable desktop/mobile pairs. Scrutinize every viewport-limited entry and reject it unless the source proves the documented platform-specific reason.
+3. Confirm every data-backed view records successful Fetch/XHR responses matching the real API clients and endpoints used by the reviewed source. Reject interception, mocks, fake records, fixtures, or substituted clients.
+4. Confirm the capture ID, timestamps, non-empty files, folds, and artifact metadata. Reject stale, partial, mismatched, or unplanned captures with `ITERATE_REQUIRED`.
+
+## Review Method
+
+- Inspect every manifest-listed artifact at 100% zoom, including all folds and states.
+- Cross-check the capture plan against all current routing, view, overlay, state, responsive, data-client, auth, feature-flag, and error-flow code. Any omitted auditable surface is a coverage failure.
+- Compare sibling routes and equivalent components side by side at the same viewport. Explicitly verify typography, icon family/geometry, icon-label gaps, control geometry, spacing, alignment, and interaction states.
+- Verify accessibility and interaction behavior with DOM/accessibility-tree, keyboard, or source evidence when pixels are insufficient. Do not award PASS from absence of visible evidence.
+- Distinguish product defects from capture artifacts. A viewport edge crossing content is not itself a defect; unreachable or obscured content is.
+- Record intentional platform, responsive, density, or semantic variants as justified exceptions.
+- Apply all ten audit dimensions and all 15 negative-proof checks from `SKILL.md`. Any negative-proof FAIL caps the total at 70/100 and requires `ITERATE_REQUIRED`.
+- Provide concrete artifact/state evidence and identify the owning file or component for every defect. Prefer shared-token or shared-component fixes.
+
+## Required Output
+
+```markdown
+# {{APPLICATION_NAME}} - UI/UX Audit Report
+
+## 1. Scorecard
+| # | Dimension | Score / 10 | Evidence |
+|:---|:---|:---:|:---|
+| 1-10 | One row per dimension from SKILL.md | X / 10 | ... |
+| | **Total** | **XX / 100** | ... |
+
+## 2. Negative-Proof Checks
+| # | Check from SKILL.md | PASS / FAIL / N/A | Artifact or interaction evidence |
+|:---|:---|:---:|:---|
+| 1-15 | One row per check | ... | ... |
+
+## 3. Cross-Route & Cross-Component Consistency
+| Equivalence set | Typography | Icons | Geometry/alignment | States | Evidence |
+|:---|:---:|:---:|:---:|:---:|:---|
+
+## 4. Accessibility, Interaction & Resilience
+| Check | PASS / FAIL / N/A | Evidence |
+|:---|:---:|:---|
+| Contrast, names/roles, non-color cues, and focus | ... | ... |
+| Keyboard order, overlay focus, dismissal, and restoration | ... | ... |
+| Loading, success, error, empty, disabled, selected, and permission-denied states | ... | ... |
+| Validation, async/destructive feedback, recovery, and wayfinding | ... | ... |
+| Zoom, long/localized content, large values, truncation, and overflow | ... | ... |
+
+## 5. Defects
+| ID | Severity | Viewport / state / artifact | Owning code | Defect | Remediation |
+|:---|:---:|:---|:---|:---|:---|
+
+## 6. Exceptions And Residual Risk
+List every N/A or documented variant and its reason. State `None` when empty.
+
+## 7. Verdict
+### VERDICT: ITERATE_REQUIRED
+or
+### VERDICT: SIGN-OFF_APPROVED
+```
+
+Use `SIGN-OFF_APPROVED` only for 100/100 with every applicable gate passing and every N/A justified.
