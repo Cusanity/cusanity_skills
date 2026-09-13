@@ -1,6 +1,6 @@
-# Subagent Isolation, Multi-Fold Scrolling & Parity Architecture Guide
+# Subagent Isolation, Multi-Fold Scrolling, Anti-Collision & Parity Architecture Guide
 
-This guide explains the architectural principles, code path exploration methods, multi-fold scrolling algorithms, and operational patterns for running the screenshot-driven UI/UX audit loop with guaranteed zero-shot objectivity, complete route parity, and deterministic screen capturing.
+This guide explains the architectural principles, code path exploration methods, multi-fold scrolling algorithms, chart label anti-collision heuristics, and operational patterns for running the screenshot-driven UI/UX audit loop with guaranteed zero-shot objectivity, complete route parity, and deterministic screen capturing.
 
 ---
 
@@ -51,7 +51,7 @@ Using `fullPage: true` captures a single ultra-tall image (e.g. 412 × 4,500px):
 2. **Loss of Ergonomic Perspective**: Reviewers cannot evaluate what the user actually sees within the physical device bounds (e.g., whether content peeks above the bottom edge to indicate scrollability).
 3. **Touch Target Measurement Distortion**: Scaling a 4,500px tall image for review degrades visual fidelity and makes 48×48dp touch target validation inaccurate.
 
-### The Solution: Progressive Multi-Fold Viewport Capturing
+### The Progressive Multi-Fold Algorithm
 The capture script must dynamically inspect page height and take sequential viewport captures:
 ```javascript
 const captureFolds = async (page, baseName, { maxFolds = 3, scrollStep = 0.75 } = {}) => {
@@ -119,7 +119,7 @@ For every project, construct and verify a parity matrix before running the audit
 | Rule Management | `08_PC_Transactions_Rule_Management_Modal` | `08_Mobile_Transactions_Rule_Management_Modal` | Verify drag handle & row heights |
 | Rule Edit Modal | `09_PC_Transactions_Rule_Edit_Modal` | `09_Mobile_Transactions_Rule_Edit_Modal` | Verify input field padding & select dropdowns |
 | Row Action Popover | `10_PC_Transactions_Row_Action_Popover` | `10_Mobile_Transactions_Row_Action_Popover` | Verify popover anchor alignment |
-| `/clock/` Main View | `11_PC_Clock_Main_Fold1_Top`<br>`11_PC_Clock_Main_Fold2_Bottom` | `11_Mobile_Clock_Main_Fold1_Top`<br>`11_Mobile_Clock_Main_Fold2_Bottom` | Verify timecard matrix & punch cards |
+| `/clock/` Main View | `11_PC_Clock_Main_Fold1_Top`<br>`11_PC_Clock_Main_Fold2_Bottom` | `11_Mobile_Clock_Main_Overview` | Verify timecard matrix & punch cards |
 | Clock Stats Modal | `12_PC_Clock_Stats_Modal_Calendar_Aligned` | `12_Mobile_Clock_Stats_Modal` | Verify calendar weekday alignment |
 | Clock Calendar Modal | `13_PC_Clock_Calendar_Modal` | `13_Mobile_Clock_Calendar_Modal` | Verify month grid |
 | Clock Control Modal | `14_PC_Clock_Control_Modal` | `14_Mobile_Clock_Control_Modal` | Verify toggle switches |
@@ -132,7 +132,37 @@ For every project, construct and verify a parity matrix before running the audit
 
 ---
 
-## 4. Overlay & Dynamic State Lifecycle
+## 4. The Bar Chart Number Collision Problem (The "$388$388$388" Defect)
+
+### The Mathematics of Bar Chart Label Congestion
+Consider a standard mobile screen with width `412px`:
+- Accounting for card padding (`16px * 2 = 32px`) and chart container margins, the available chart canvas width is approximately `320px–340px`.
+- For an annual series with 12 monthly bars, each category slot has only `340px / 12 = ~28px` of horizontal space.
+- A 4-character currency label like `"$388"` or `"$279"` rendered at standard font size (11–12px) occupies approximately `26px–30px` of text width.
+- If multiple consecutive months have non-zero or similar values (such as summer electricity bills or winter heating gas), the numbers are placed side-by-side with zero horizontal spacing.
+- The inevitable visual defect is **glyph collision**: `"$388"` and `"$388"` merge into an unreadable continuous string `"$388$388$388"`, and adjacent numbers like `"$216"` and `"$220"` touch each other.
+
+### Why Subagents Initially Miss This Defect
+Subagents often perform holistic gestalt pattern matching:
+- They see a bar chart with clean colors, nice borders, and horizontal x-axis labels (`1`, `2`, `3...`), and assume the chart is compliant.
+- Unless specifically instructed to inspect the **clearance between adjacent data labels on top of bars**, the subagent's attention heads focus on high-level layout rather than micro-typography collisions.
+
+### How to Enforce Strict Subagent Auditing
+1. **Explicit Defect Signature in Prompt**:
+   The prompt template explicitly names this failure mode: *"Look for numbers on top of bars merging into single strings like $388$388$388 or touching adjacent labels"*.
+2. **Mandatory 8px Clearance Rule**:
+   Require at least 8px of clean negative space between any two rendered text bounding boxes.
+3. **Standard Design System Remediation Patterns**:
+   - **Pattern 1: Tooltip-First Disclosure (Recommended for Mobile)**:
+     On mobile devices (`< 600px`), static data labels on top of dense multi-bar charts are an anti-pattern. Suppress static top labels and reveal precise monetary amounts via interactive elevated frosted tooltips on touch/tap.
+   - **Pattern 2: Dynamic Collision Suppression**:
+     If `barWidth < labelWidth + 12px`, hide the label for that bar.
+   - **Pattern 3: Currency Symbol Optimization**:
+     Display numbers as plain integers (e.g., `388` instead of `$388`) if the axis, legend, or card title already indicates currency in USD, saving valuable horizontal space.
+
+---
+
+## 5. Overlay & Dynamic State Lifecycle
 
 When triggering dialogs, sheets, and popovers:
 1. **Scroll Trigger Into View**:
@@ -154,7 +184,7 @@ When triggering dialogs, sheets, and popovers:
 
 ---
 
-## 5. The Subagent Confirmation Bias Problem & Lifecycle
+## 6. The Subagent Confirmation Bias Problem & Lifecycle
 
 ### Why Old Subagents Fail Across Iterations
 - **Conversation Anchoring**: If a subagent reported a defect in Turn 1, and the orchestrator sends a follow-up message saying *"I fixed this in commit XYZ, please verify"*, the subagent's attention mechanism heavily anchors on the claim that the issue has been addressed. It tends to confirm the fix rather than re-evaluating the actual rendered pixels.
@@ -172,7 +202,7 @@ In this workflow:
 
 ### Subagent Lifecycle Execution
 1. Once Round N subagent delivers its report:
-   - If defects are found:
+   - If defects are found (including chart number collisions):
      - `manage_subagents` -> `Action: 'kill'` with `ConversationIds: [id]`.
      - Remediate code in repo.
      - Run `npm run lint && npm run build`.

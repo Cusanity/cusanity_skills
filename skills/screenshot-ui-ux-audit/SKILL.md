@@ -12,8 +12,9 @@ This skill guides an orchestrator agent through an autonomous, ultra-high-rigor 
 1. **Mandatory Upfront Code Path & Sub-Route Exploration**: Complete discovery of all routes, sub-routes (e.g. `/fee/*` chart variants), nested tabs, modals, dialogs, drawers, and conditional states before capturing.
 2. **Progressive Multi-Fold Vertical Scrolling (Desktop & Mobile)**: Overcoming "above-the-fold blindness" by capturing sequential viewport folds (`Fold1_Top`, `Fold2_Mid`, `Fold3_Bottom`) for long dashboards, ledgers, and 1-column mobile stacked layouts.
 3. **Strict 1:1 PC/Mobile Viewport Parity**: Guaranteeing that every route, sub-route, chart view, and overlay captured on Desktop (1440×900) has an exact counterpart captured on Mobile (412×915).
-4. **Deterministic Screen Capturing**: Generating a project-tailored `capture-all-screenshots.mjs` script that purges old screenshots, enforces `scale: 'css'`, waits for animation & canvas settling, and validates non-zero file sizes.
-5. **Independent Brand-New Reviewer Subagent Per Iteration**: Spawning a completely clean subagent in each round with zero conversational memory or bias.
+4. **Zero-Tolerance Chart Data Label Anti-Collision Audit**: Strict detection of number collisions on top of chart bars (e.g. `$388$388$388` merging or adjacent labels with < 8px clearance), enforcing P0 defect logging and score deduction.
+5. **Deterministic Screen Capturing**: Generating a project-tailored `capture-all-screenshots.mjs` script that purges old screenshots, enforces `scale: 'css'`, waits for animation & canvas settling, and validates non-zero file sizes.
+6. **Independent Brand-New Reviewer Subagent Per Iteration**: Spawning a completely clean subagent in each round with zero conversational memory or bias.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -35,6 +36,7 @@ This skill guides an orchestrator agent through an autonomous, ultra-high-rigor 
 │                           │                                                 │
 │                           ▼                                                 │
 │   5. Subagent Audits Visuals & Code -> Returns Scorecard + Defect Punch-List│
+│      (Deep micro-typography check: zero overlapping numbers in charts)      │
 │                           │                                                 │
 │             ┌─────────────┴─────────────┐                                   │
 │             ▼                           ▼                                   │
@@ -71,7 +73,7 @@ Before generating `capture-all-screenshots.mjs`, the agent MUST systematically e
    - Enumerate all sub-tab switchers (e.g., month tabs, chart category switchers, preset chips).
 3. **Overlays, Modals, Sheets & Drawers**:
    - Search for modal primitives: `Dialog`, `Modal`, `Sheet`, `Drawer`, `Popover`, `Menu`, `BottomSheet`.
-   - Identify the trigger buttons (e.g. "Filter", "Manage Rules", "Settings", "Account Details", "Add Item", "AI Summary").
+   - Identify the trigger buttons (e.g. "Filter", "Manage Rules", "Settings", "Add Account", "AI Summary").
    - Identify the clean dismissal mechanism (`Escape` key, backdrop click, close button).
 4. **Conditional & Edge States**:
    - Identify empty states, filtered views, row expansion, and secondary tabs.
@@ -112,7 +114,23 @@ A common anti-pattern is capturing 20 rich screenshots on PC, but only 5–8 bas
 
 ---
 
-### 4. Canvas, Chart & Dynamic Animation Settling
+### 4. Zero-Tolerance Chart Number & Data Label Collision Audit
+**Overlapping numbers on chart bars represent a critical defect in data legibility and visual craft.**
+In multi-bar charts (such as 12 monthly bars in `/fee/*` utility charts), static value labels rendered above bars frequently collide into unreadable text blobs (e.g. `$388$388$388` where numbers merge horizontally, or `$216$220` where adjacent glyphs touch).
+1. **Mandatory Label Clearance Inspection**:
+   - The reviewer subagent MUST inspect the numeric values above every bar at 100% zoom.
+   - Any two adjacent labels that overlap, touch, or have less than **8px horizontal clearance** between their bounding boxes constitute a **P0 / Blocker Visual Defect**.
+2. **Automated Score Penalty & Iteration**:
+   - If ANY data labels overlap or touch in any chart screenshot, Dimension 5 score is capped at **5 / 10 maximum**.
+   - The subagent must return `### VERDICT: ITERATE_REQUIRED`.
+3. **Prescribed Remediation Patterns**:
+   - *Tooltip-First on Mobile*: On mobile screens (< 600px) or whenever `barWidth < labelWidth + 8px`, suppress static top labels and reveal exact amounts via elevated interactive tooltips on touch/hover.
+   - *Selective / Peak Labeling*: Render labels only on max/min bars or when spacing permits clean clearance.
+   - *Currency Symbol Removal*: Omit "$" prefix from bar tops when the Y-axis or card header already indicates currency, reducing label text width by 30%.
+
+---
+
+### 5. Canvas, Chart & Dynamic Animation Settling
 Data visualization components (Chart.js, Recharts, ECharts, SVGs) animate dynamically on load:
 1. **Network & Element Stabilization**:
    - Always call `waitForLoadState('networkidle')`.
@@ -123,7 +141,7 @@ Data visualization components (Chart.js, Recharts, ECharts, SVGs) animate dynami
 
 ---
 
-### 5. Forced Fresh Screenshots (Zero Stale State)
+### 6. Forced Fresh Screenshots (Zero Stale State)
 Screenshots must reflect the exact, current state of the application:
 1. **Directory Purge**: The capture script MUST purge existing PNGs in the review folder before writing new ones (`fs.unlinkSync` on all `*.png` files).
 2. **Fresh Browser Context**: Create a new incognito-equivalent browser context (`browser.newContext({ deviceScaleFactor: 1 })`) with clean storage and cache.
@@ -132,7 +150,7 @@ Screenshots must reflect the exact, current state of the application:
 
 ---
 
-### 6. Mandatory Brand-New Subagent Per Iteration
+### 7. Mandatory Brand-New Subagent Per Iteration
 **NEVER reuse the same subagent conversation across iteration loops.**
 - **Why**: Reusing an existing subagent via `send_message` pollutes context with prior prompts, rationalizations, and confirmation bias. The subagent tends to confirm the fix rather than re-evaluating the actual rendered pixels.
 - **Enforcement**:
@@ -195,7 +213,7 @@ See `scripts/capture-all-screenshots.mjs` for the reference implementation:
 ### Phase 3: Execute Capture & Generate Review Instructions
 1. Run the script: `node capture-all-screenshots.mjs http://localhost:3000`.
 2. Verify all output PNGs exist on disk and have non-zero size.
-3. Write `prompt.txt` in the review directory specifying all captured screenshots, the parity matrix, and the 7-dimension audit criteria.
+3. Write `prompt.txt` in the review directory specifying all captured screenshots, the parity matrix, and the 7-dimension audit criteria (with bold emphasis on zero label collisions).
 
 ---
 
@@ -207,7 +225,7 @@ Call `invoke_subagent` to launch a new, unanchored reviewer:
     {
       "TypeName": "design_system_staff_reviewer",
       "Role": "Independent Staff UI/UX Reviewer (Round N)",
-      "Prompt": "Perform a comprehensive, zero-shot UI/UX review using instructions in <ReviewDir>/prompt.txt. Inspect all fresh desktop and mobile screenshots (including multi-fold views and all sub-routes) in <ReviewDir>/, cross-reference with src/, and return the scorecard, punch-list, and verdict."
+      "Prompt": "Perform a comprehensive, zero-shot UI/UX review using instructions in <ReviewDir>/prompt.txt. Inspect all fresh desktop and mobile screenshots (including multi-fold views, sub-routes, and micro-typography in charts) in <ReviewDir>/, cross-reference with src/, and return the scorecard, punch-list, and verdict."
     }
   ]
 }
@@ -237,9 +255,9 @@ Call `invoke_subagent` to launch a new, unanchored reviewer:
 | **2** | **Concentric Shape & Radii Math** | Concentric formula $R_{\text{inner}} = \max(0, R_{\text{outer}} - \text{padding})$ strictly maintained. Bento cards (20px) nest 8–12px elements. Modals (28px) nest 16px cards. Pills enforce 9999px. |
 | **3** | **Sheets & Modals Hierarchy** | Desktop (>= 900px) uses contextual right-docked side sheets (28px left corners) keeping underlying view visible. Mobile (< 600px) uses full-screen or bottom sheets with flush geometry. Center dialogs reserved for compact confirmations. |
 | **4** | **Data Density & Tabular Numerals** | Strict table row heights (56dp). All monetary numbers, counters, and timestamps enforce `font-variant-numeric: tabular-nums` and `font-feature-settings: 'tnum'`. Right-aligned amounts. Compact 28–32dp Assist Chips. |
-| **5** | **Chart Readability & Sub-Route Parity** | Strictly horizontal labels (`rotate: 0`). WCAG AAA text contrast (> 7:1) on colored bars. Micro-segments under threshold suppress collision-prone inline text. Elevated card tooltips. **All sub-routes (e.g. `/fee/*` water, electric, gas, total) fully rendered on both Desktop and Mobile**. |
+| **5** | **Chart Readability, Anti-Collision & Sub-Routes** | Strictly horizontal labels (`rotate: 0`). **Zero overlapping numbers or glyph collisions on top of bars (minimum 8px lateral clearance between adjacent labels; numbers like `$388$388` must never touch or merge)**. WCAG AAA text contrast (> 7:1) on colored bars. Micro-segment collision suppression. Elevated frosted tooltips. All sub-routes (`/fee/*` water, electric, gas, total) fully rendered and collision-free across both Desktop and Mobile. |
 | **6** | **Temporal & Calendar Alignment** | Attendance and weekly matrices strictly anchor to real calendar weekdays (Sunday start). Current day highlighted. Complete punch status legends (`● 缺卡`). Progressive disclosure hides inactive states. |
-| **7** | **Mobile Responsiveness & Multi-Fold Ergonomics** | Fluid 1-column layout without horizontal overflow (`overflow-x: clip`). Safe-area insets (`env(safe-area-inset-bottom)`) respected. Touch targets meet minimum 48×48dp. **Multi-fold vertical scroll stability: sticky headers do not obscure content, bottom nav stays docked, and below-the-fold cards maintain spacing**. |
+| **7** | **Mobile Responsiveness, Multi-Fold Stacking & Parity** | Fluid 1-column layout without horizontal overflow (`overflow-x: clip`). Safe-area insets (`env(safe-area-inset-bottom)`) respected. Touch targets meet minimum 48×48dp. Multi-fold vertical scroll stability: sticky headers do not obscure content, bottom nav stays docked, and below-the-fold cards maintain spacing. Strict 1:1 parity with desktop suite. |
 
 ---
 
@@ -251,7 +269,7 @@ screenshot-ui-ux-audit/
 ├── scripts/
 │   └── capture-all-screenshots.mjs        # Production-grade deterministic capture script template
 ├── resources/
-│   ├── audit_prompt_template.txt          # Reviewer subagent prompt template
+│   ├── audit_prompt_template.txt          # Reviewer subagent prompt template (with collision audit)
 │   └── scorecard_template.md              # 100/100 scorecard template
 └── references/
     └── workflow_guide.md                  # Comprehensive isolation, scrolling, and parity guide
