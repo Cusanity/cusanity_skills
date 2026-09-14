@@ -31,16 +31,18 @@
 
 | # | Disqualifier Check | Status | Verification Detail |
 |---|:---|:---:|:---|
-| 1 | Zero Thick Black Rendering / Collision Lines | **PASS** | Bounding box clearance verified across all table rows and text elements. |
+| 1 | Zero Solid Black Glitches & Dark Inverted Block Artifacts | **PASS** | Icons and badges use transparent vector assets or theme-aware accents; zero dark void artifacts. |
 | 2 | Table Row Clearance >= Embedded Widget Height | **PASS** | Cell widget heights comply with $H_{\text{row}} \ge H_{\text{widget}} + 8\text{dp}$. |
-| 3 | Input Controls Constrained (No Stretched Spinboxes) | **PASS** | Numeric spinboxes and counters constrained to $\le 120\text{dp}$. |
-| 4 | Combobox Text Unclipped by Dropdown Arrows | **PASS** | Column widths $\ge 180\text{dp}$ accommodate full names, icons, and arrows. |
-| 5 | Clean Viewport Fold Continuity (No Mid-Input Slicing) | **PASS** | Cards, containers, and controls respect fold boundaries without mid-widget slicing. |
-| 6 | Docked Action Bar Flush & Non-Occluding | **PASS** | Action bar docked flush with container or floating with proper margins. |
-| 7 | Zero Unpainted Table Cell Gaps | **PASS** | Table grid lines and backgrounds fully painted without whitespace gaps. |
-| 8 | Complete Multi-Fold Inspection (Folds 1, 2, 3) | **PASS** | All vertical folds inspected; below-the-fold content fully audited. |
-| 9 | Zero Overlapping Numbers or Glyph Collisions | **PASS** | Data labels and chart values maintain $\ge 8\text{px}$ clearance. |
-| 10 | Concentric Radii Math Respected | **PASS** | $R_{\text{inner}} = \max(0, R_{\text{outer}} - \text{padding})$ strictly maintained. |
+| 3 | Input Numbers Visible & Uncollapsed (No 0px Spinbox Values) | **PASS** | In-table spinboxes render legible centered numbers with dedicated clearance. |
+| 4 | Zero Multi-Widget Cell Collisions or Squashed Buttons | **PASS** | Single-purpose cell architecture; action buttons use compact pill geometry with zero overlap. |
+| 5 | Table Data & Prices Unclipped (Zero Ellipsis `...`) | **PASS** | Column widths and compact cell padding ensure complete, untruncated string rendering. |
+| 6 | Combobox Text Unclipped by Dropdown Arrows | **PASS** | Column widths $\ge 195\text{dp}$ accommodate full names, icons, and dropdown arrows. |
+| 7 | Input Controls Constrained (No Stretched Spinboxes) | **PASS** | Numeric spinboxes and counters constrained to $\le 90\text{dp}$. |
+| 8 | Clean Viewport Fold Continuity (No Mid-Input Slicing) | **PASS** | Cards, containers, and controls respect fold boundaries without mid-widget slicing. |
+| 9 | Docked Action Bar Flush & Non-Occluding | **PASS** | Action bar docked flush with container or floating with proper margins. |
+| 10 | Zero Unpainted Table Cell Gaps | **PASS** | Table grid lines and backgrounds fully painted without whitespace gaps. |
+| 11 | Complete Multi-Fold Inspection (Folds 1, 2, 3) | **PASS** | All vertical folds inspected; below-the-fold content fully audited. |
+| 12 | Zero Overlapping Numbers or Glyph Collisions in Charts | **PASS** | Data labels and chart values maintain $\ge 8\text{px}$ clearance. |
 
 ---
 

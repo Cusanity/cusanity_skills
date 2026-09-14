@@ -84,24 +84,26 @@ Notice: Long pages are captured across multiple sequential vertical folds (`_Fol
 
 ---
 
-## MANDATORY ANTI-RUBBERSTAMPING CHECK: TOP 10 VISUAL DISQUALIFIERS
+## MANDATORY ANTI-RUBBERSTAMPING CHECK: TOP 12 VISUAL DISQUALIFIERS
 
 > [!CAUTION]
 > **DO NOT RUBBER-STAMP OR DEFAULT TO HIGH SCORES.**
-> In prior iterations, subagents committed critical sycophancy errors by skimming surfaces and ignoring thick black horizontal collision lines, overlapping table widgets, sliced cards, and 600px-wide stretched spinboxes.
-> You MUST inspect every image at 100% zoom and explicitly certify the absence of each of the following **Top 10 Visual Disqualifiers** in Section 2 of your report.
-> If **ANY** of these 10 flaws exists in ANY screenshot, your overall score is **STRICTLY CAPPED AT <= 70 / 100** and your verdict MUST be **`### VERDICT: ITERATE_REQUIRED`**.
+> In prior iterations, subagents committed critical sycophancy errors by skimming surfaces and ignoring thick black rendering lines, dark inverted un-themed logo blocks, collapsed 0px spinboxes with invisible numbers, squashed multi-widget table cells, truncated ellipsis data, sliced containers, and 600px-wide stretched spinboxes.
+> You MUST inspect every image at 100% zoom and explicitly certify the absence of each of the following **Top 12 Visual Disqualifiers** in Section 2 of your report.
+> If **ANY** of these 12 flaws exists in ANY screenshot, your overall score is **STRICTLY CAPPED AT <= 70 / 100** and your verdict MUST be **`### VERDICT: ITERATE_REQUIRED`**.
 
-1. **Thick Black Rendering / Collision Lines**: Black horizontal or vertical artifact lines running across table rows, through text, or between adjacent cells caused by widget bounding-box clipping or style sheet overflow.
+1. **Solid Black Rendering Glitches & Dark Inverted Block Artifacts**: Black horizontal/vertical artifact lines running across table rows, or solid black circles/squares/blocks (`#000000`, `#24292f`) on light surfaces caused by unstyled fallback icons, widget clipping, or CSS overflow.
 2. **Cell Widget Height Collisions**: Table row default section height less than the embedded widget height + vertical padding (`rowHeight < widgetHeight + 8dp`), causing cell borders to overlap combo/input text.
-3. **Absurdly Stretched Inputs**: Single-digit numbers, numeric spinboxes, or short strings stretched across full-width layouts (> 200px wide without a reasonable `maximumWidth`).
-4. **Truncated Combobox Labels**: Provider or model combobox text clipped (e.g. "Google Gemi..." instead of "Google Gemini") or covered by the dropdown arrow icon due to insufficient column width.
-5. **Abrupt Container / Card Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation or clearance from the action bar.
-6. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
-7. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
-8. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
-9. **Label / Number Collisions**: Adjacent numbers, counters, or badges touching or having < 8px clearance.
-10. **Concentric Radii Violations**: Inner elements having larger corner radius than outer parent cards ($R_{\text{inner}} > R_{\text{outer}} - \text{padding}$).
+3. **Invisible / Collapsed Inner Input Values**: Numbers/text inside spinboxes, double spinboxes, or line edits collapsed to 0px width (rendering only up/down arrows or blank boxes with missing values) due to insufficient column width or competing internal paddings.
+4. **Multi-Widget Cell Collisions & Overlap**: Multiple widgets (e.g. action button + badge label) crammed into a narrow cell causing overlap, squashed button text, or truncated badge glyphs.
+5. **Data Column Ellipsis Truncation**: Table text or numeric data (e.g. `$0.30/...`) truncated to ellipsis due to narrow columns or excessive cell item padding.
+6. **Truncated Combobox Labels**: Provider or model combobox text clipped (e.g. "Google Gemi..." instead of "Google Gemini") or covered by the dropdown arrow icon due to insufficient column width.
+7. **Absurdly Stretched Inputs**: Single-digit numbers, numeric spinboxes, or short strings stretched across full-width layouts (> 200px wide without a reasonable `maximumWidth`).
+8. **Abrupt Container / Mid-Control Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation or clearance from the action bar.
+9. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
+10. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
+11. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
+12. **Chart Data Label & Number Collisions**: Overlapping numbers on chart bars or counters touching with < 8px clearance.
 
 ---
 
@@ -128,16 +130,18 @@ You must output your evaluation strictly using the following markdown sections:
 (Reviewer MUST explicitly certify every item as PASS or FAIL)
 | # | Disqualifier Check | Status (PASS / FAIL) | Photographic Evidence / Observation |
 |---|:---|:---:|:---|
-| 1 | Zero Thick Black Rendering / Collision Lines | PASS / FAIL | ... |
+| 1 | Zero Solid Black Glitches & Dark Inverted Block Artifacts | PASS / FAIL | ... |
 | 2 | Table Row Clearance >= Embedded Widget Height | PASS / FAIL | ... |
-| 3 | Input Controls Constrained (No Stretched Spinboxes) | PASS / FAIL | ... |
-| 4 | Combobox Text Unclipped by Dropdown Arrows | PASS / FAIL | ... |
-| 5 | Clean Viewport Fold Continuity (No Mid-Input Slicing) | PASS / FAIL | ... |
-| 6 | Docked Action Bar Flush & Non-Occluding | PASS / FAIL | ... |
-| 7 | Zero Unpainted Table Cell Gaps | PASS / FAIL | ... |
-| 8 | Complete Multi-Fold Inspection (Folds 1, 2, 3) | PASS / FAIL | ... |
-| 9 | Zero Overlapping Numbers or Glyph Collisions | PASS / FAIL | ... |
-| 10 | Concentric Radii Math Respected | PASS / FAIL | ... |
+| 3 | Input Numbers Visible & Uncollapsed (No 0px Spinbox Values) | PASS / FAIL | ... |
+| 4 | Zero Multi-Widget Cell Collisions or Squashed Buttons | PASS / FAIL | ... |
+| 5 | Table Data & Prices Unclipped (Zero Ellipsis `...`) | PASS / FAIL | ... |
+| 6 | Combobox Text Unclipped by Dropdown Arrows | PASS / FAIL | ... |
+| 7 | Input Controls Constrained (No Stretched Spinboxes) | PASS / FAIL | ... |
+| 8 | Clean Viewport Fold Continuity (No Mid-Input Slicing) | PASS / FAIL | ... |
+| 9 | Docked Action Bar Flush & Non-Occluding | PASS / FAIL | ... |
+| 10 | Zero Unpainted Table Cell Gaps | PASS / FAIL | ... |
+| 11 | Complete Multi-Fold Inspection (Folds 1, 2, 3) | PASS / FAIL | ... |
+| 12 | Zero Overlapping Numbers or Glyph Collisions in Charts | PASS / FAIL | ... |
 
 ## 3. Defect & Inconsistency Punch-List
 (If any defects exist, populate the table below. If zero defects, state "Zero defects identified".)

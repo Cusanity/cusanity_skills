@@ -170,8 +170,8 @@ Screenshots must reflect the exact, current state of the application:
 
 ---
 
-### 8. Table Cell Widget Clearance & Sizing Contract (Desktop GUI & Web Tables)
-**Embedded widgets must NEVER exceed row section height or cause horizontal clipping.**
+### 8. Table Cell Widget Clearance, Inner Geometry & Multi-Widget Ergonomics (Desktop GUI & Web Tables)
+**Embedded widgets must NEVER collapse inner content, exceed row section height, or cause horizontal clipping.**
 In desktop frameworks (PyQt6/PySide6, Tkinter, AppKit) and custom data grids:
 1. **Vertical Clearance Formula**:
    Table row default section size ($H_{\text{row}}$) must strictly accommodate the inner widget height plus its styling padding and borders:
@@ -180,22 +180,59 @@ In desktop frameworks (PyQt6/PySide6, Tkinter, AppKit) and custom data grids:
    - *Enforcement*: Always enforce `setDefaultSectionSize(44)` to `56` dp whenever interactive cell widgets are present.
 2. **Horizontal Clearance & Combobox Arrow Protection**:
    Columns hosting comboboxes with icons must NOT use naive `ResizeToContents` calculated from short headers (e.g. "Provider" / "提供商").
-   - Set interactive column width $\ge 180\text{dp}$–$210\text{dp}$ to ensure provider names (e.g. "Google Gemini", "GitHub Copilot", "Anthropic Claude") are never truncated to "Google Gen..." or occluded by the dropdown arrow.
+   - Set interactive column width $\ge 195\text{dp}$–$210\text{dp}$ to ensure provider names (e.g. "Google Gemini", "GitHub Copilot", "Anthropic Claude") are never truncated to "Google Gemi..." or occluded by the dropdown arrow.
+3. **Inner Content Collapse & The 0px LineEdit Trap**:
+   When placing input widgets (`QSpinBox`, `QDoubleSpinBox`, `QLineEdit`) inside table cells, two compounding paddings (the table item padding and the widget's own internal padding/button reservation) can reduce the inner text input area (`QLineEdit`) to 0px width.
+   - *Failure Mode*: The outer widget appears to have a bounding box, but the actual numeric value is completely hidden/invisible, rendering only hollow arrow buttons or blank frames with zero text.
+   - *Enforcement*: For narrow columns ($\le 65\text{dp}$), enforce `setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)` and compact CSS padding (`padding: 2px 4px;`) so the numeric value (`3`, `5.00`) is centered, crisp, and 100% visible. If buttons are required, column width must be $\ge 80\text{dp}$. Reviewers MUST verify that numeric values are explicitly visible and rendered—not just the outer widget frame.
+4. **Multi-Widget Cell Collisions & Single-Purpose Cell Ergonomics**:
+   Attempting to cram multiple disparate widgets (e.g. an action button + a status badge label) into a single 60–80px table cell causes them to overlap, squash buttons into blank squares, and truncate badge text.
+   - *Enforcement*: Table cells must adhere to single-purpose ergonomics. Action buttons must use dedicated compact pill styling (e.g. `QPushButton#chain_balance_btn` with 24px height). Secondary status/metadata (such as peak pricing status) belongs in tooltips or dedicated columns, never jammed next to buttons in a narrow cell.
+5. **Table Data Ellipsis Truncation**:
+   Fixed-width table columns must accommodate worst-case string lengths (e.g., dual price metrics like `$0.30 / $2.50` or `$0.00 / $0.00`) without triggering ellipsis `...`. Adjust column widths ($\ge 95\text{dp}$) and reduce table item padding from 12px to 6–8px to give text adequate breathing room.
 
 ---
 
-### 9. Input Control Width Sanity (Zero 600px Stretched Spinboxes)
+### 9. Theme-Aware Icon, Window Transparency & Surface Void Prevention (Windows DWM / Compositor Traps)
+**Custom icons, graphic assets, and window surfaces must harmonize with the active theme and never render as solid dark voids or compositor holes.**
+1. **The Inverted Dark Void Anti-Pattern**:
+   In light mode, using near-black `#000000` or `#24292f` solid background shapes for un-themed provider logos or fallback badges creates the optical illusion of an unrendered black box or graphics driver glitch.
+2. **Prescribed Asset Standards**:
+   - Always provide dedicated transparent-background vector or alpha-channel PNG assets (e.g. `copilot.png`, `gemini.ico`) with crisp antialiasing.
+   - Fallback badges must use theme-aware accent colors (e.g. Copilot purple/indigo `#6e40c9`, Gemini blue `#1a73e8`, DeepSeek blue `#1565c0`) rather than solid black fills.
+3. **The Window Transparency & DWM Compositor Black Hole Trap (`QWidget { background-color: transparent; }` & `border-radius` on `QMainWindow`)**:
+   - In desktop stylesheet engines (Qt QSS / GTK CSS / Electron): setting a blanket `QWidget { background-color: transparent; }` or applying `border-radius: 28px` to a top-level framed `QMainWindow` causes base window areas (such as behind `QTabBar`, gaps above `QTabWidget::pane`, and the four outer corners) to have an alpha channel of 0 (`alpha = 0`).
+   - *Failure Mode on Windows DWM / Wayland / X11 Compositor*: The OS window compositor does NOT alpha-blend standard framed client windows; instead, any pixel with `alpha = 0` or unpainted background is rendered by DWM as **solid, pitch black (`#000000`)**. This creates prominent black horizontal bars behind tab bars, 6px black lines slicing above tab panes, and solid black triangular corners.
+   - *Enforcement & Remediation*:
+     1. **Never use blanket `QWidget { background-color: transparent; }`** at the root stylesheet level. If child widgets need transparent background, target them explicitly (`QLabel`, `QCheckBox`).
+     2. **Never set `border-radius` on top-level `QMainWindow`** unless it is explicitly a frameless window (`Qt.WindowType.FramelessWindowHint`) with `WA_TranslucentBackground` and custom DWM shadow handling. Standard framed windows must have square client bounds; rounded corners belong only on `QDialog` and `QWizard`.
+     3. Explicitly paint the window base: `QMainWindow { background-color: {p.surface}; }` and `QTabWidget { background-color: {p.surface}; }`.
+
+---
+
+### 10. Viewport Fold Continuity & Mid-Control Slicing Prevention
+**Viewport folds must never slice through an input control or card boundary halfway through.**
+1. **The Mid-Control Slicing Anti-Pattern**:
+   When scroll panels are poorly constrained or card heights spill by 20–40px beyond the viewport fold, the top 2–4px border of a combobox, spinbox, or card peeks through at the bottom edge (`(___________)`), creating the appearance of a broken or incomplete UI.
+2. **Prescribed Layout Math**:
+   - Dynamically size embedded tables (`setFixedHeight(row_height * rows + header_height)`) to avoid reserving dead space for non-existent rows.
+   - Group related controls into compact horizontal rows (`QHBoxLayout` / `flex-row`) rather than stacking multi-row forms.
+   - Ensure the entire card or group box finishes cleanly above the fold boundary, or clearly scrolls below the fold.
+
+---
+
+### 11. Input Control Width Sanity (Zero 600px Stretched Spinboxes)
 **Form inputs must enforce ergonomic maximum widths tailored to their data type.**
 1. **The Full-Width Stretch Anti-Pattern**:
    Form layouts (`QFormLayout`, CSS flex/grid) stretch children horizontally by default. Numeric spinboxes (e.g. 1–100 cycles, 0.40 temperature, port numbers, currency multipliers) that stretch 600px–1000px across the viewport look absurd and violate basic ergonomics.
 2. **Prescribed Maximum Widths**:
-   - Short numeric spinboxes / counters: `setMaximumWidth(80 - 120px)`.
+   - Short numeric spinboxes / counters: `setMaximumWidth(75 - 90px)`.
    - Small dropdowns / select menus: `setMaximumWidth(200 - 240px)`.
    - Related paired inputs (e.g. Max cycles + Wait time): Group horizontally in a single compact row (`QHBoxLayout` / `flex-row`) rather than stacking full-width across multiple rows.
 
 ---
 
-### 10. Persistent Action Bar vs Floating Dock Architecture
+### 12. Persistent Action Bar vs Floating Dock Architecture
 **Action bars must either be cleanly docked edge-to-edge or distinctly floating with proper clearance.**
 1. **Edge-to-Edge Docked Architecture**:
    If an action bar is pinned below a scroll area:
@@ -209,23 +246,25 @@ In desktop frameworks (PyQt6/PySide6, Tkinter, AppKit) and custom data grids:
 
 ---
 
-### 11. Mandatory Anti-Rubberstamping Verification (The Top 10 Visual Disqualifiers)
+### 13. Mandatory Anti-Rubberstamping Verification (The Top 12 Visual Disqualifiers)
 **Sycophancy and confirmation bias are the #1 failure mode of LLM design reviewers.**
-In prior audits, subagents looked at overall theme colors, noticed rounded buttons, and falsely awarded "100/100" while completely ignoring thick black rendering lines cutting through text, sliced containers, and 600px spinboxes.
+In prior audits, subagents looked at overall theme colors, noticed rounded buttons, and falsely awarded "100/100" while completely ignoring thick black rendering lines cutting through text, sliced containers, invisible numbers inside collapsed spinboxes, truncated price strings, and 600px spinboxes.
 1. **Mandatory Negative Proof Checklist**:
-   Every review report MUST include Section 2 ("Negative-Proof Disqualifiers Verification") where the reviewer explicitly inspects and certifies PASS/FAIL for each of the **Top 10 Visual Disqualifiers**:
-   1. **Thick Black Rendering / Collision Lines**: Black horizontal or vertical artifact lines running across table rows, through text, or between adjacent cells caused by widget bounding-box clipping or CSS overflow.
+   Every review report MUST include Section 2 ("Negative-Proof Disqualifiers Verification") where the reviewer explicitly inspects and certifies PASS/FAIL for each of the **Top 12 Visual Disqualifiers**:
+   1. **Solid Black Rendering Glitches & Dark Inverted Block Artifacts**: Black horizontal/vertical artifact lines running across table rows, solid black strips behind navigation/tab bars or window corners (caused by `QWidget` transparent QSS + DWM alpha 0 voids), or solid black circles/squares/blocks (`#000000`, `#24292f`) on light surfaces caused by unstyled fallback icons, widget clipping, or CSS overflow.
    2. **Cell Widget Height Collisions**: Table row height less than inner widget height + padding (`rowHeight < widgetHeight + 8dp`), causing borders to slice through text.
-   3. **Absurdly Stretched Inputs**: Numeric spinboxes or short strings stretched across full-width layouts (> 200px wide without `maximumWidth`).
-   4. **Truncated Combobox Labels**: Text clipped (e.g. "Google Gemi...") or covered by the dropdown arrow due to insufficient column width.
-   5. **Abrupt Container / Card Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation.
-   6. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
-   7. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
-   8. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
-   9. **Data Label / Number Collisions**: Overlapping numbers on chart bars or counters touching with < 8px clearance.
-   10. **Concentric Radii Violations**: Inner elements having larger corner radius than outer parent cards ($R_{\text{inner}} > R_{\text{outer}} - \text{padding}$).
+   3. **Invisible / Collapsed Inner Input Values**: Numbers/text inside spinboxes, double spinboxes, or line edits collapsed to 0px width (rendering only up/down arrows or blank boxes with missing values) due to insufficient column width or competing internal paddings.
+   4. **Multi-Widget Cell Collisions & Overlap**: Multiple widgets (e.g. action button + badge label) crammed into a narrow cell causing overlap, squashed button text, or truncated badge glyphs.
+   5. **Data Column Ellipsis Truncation**: Table text or numeric data (e.g. `$0.30/...`) truncated to ellipsis due to narrow columns or excessive cell item padding.
+   6. **Truncated Combobox Labels**: Text clipped (e.g. "Google Gemi...") or covered by dropdown arrows due to insufficient column width.
+   7. **Absurdly Stretched Inputs**: Numeric spinboxes or short strings stretched across full-width layouts (> 200px wide without `maximumWidth`).
+   8. **Abrupt Container / Mid-Control Slicing**: Cards, group boxes, or input fields sliced halfway through at a viewport fold without visual separation.
+   9. **Action Bar / Sticky Dock Collisions**: Bottom action bars floating awkwardly over scrollable content with mismatched corner radii touching window edges, or obscuring interactive controls.
+   10. **Unpainted Cell Gaps / Grid Holes**: Table columns showing white, transparent, or unpainted gaps between cells.
+   11. **Above-the-Fold Blindness**: Reviewing only Fold 1 of a scrollable panel while ignoring below-the-fold controls (`_Fold2_Mid.png`, `_Fold3_Bottom.png`).
+   12. **Chart Data Label & Number Collisions**: Overlapping numbers on chart bars or counters touching with < 8px clearance.
 2. **Automatic Score Penalty**:
-   If **ANY** of these 10 disqualifiers fails in ANY screenshot:
+   If **ANY** of these disqualifiers fails in ANY screenshot:
    - Overall score is **STRICTLY CAPPED AT $\le 70 / 100$**.
    - Reviewer MUST issue **`### VERDICT: ITERATE_REQUIRED`**. Zero exceptions.
 
